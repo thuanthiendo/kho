@@ -1,0 +1,42 @@
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+}
+
+h1, h2 {
+  text-align: center;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 6px;
+  text-align: center;
+}
+
+.login-box {
+  width: 300px;
+  margin: 100px auto;
+  text-align: center;
+}
+
+.login-box input {
+  width: 90%;
+  margin: 5px 0;
+  padding: 6px;
+}
+
+button {
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.add-box {
+  margin-bottom: 10px;
+  text-align: center;
+}
