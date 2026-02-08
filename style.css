@@ -1,32 +1,43 @@
 body {
-  font-family: Arial;
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
   padding: 20px;
-  background: #f4f6f4;
 }
 
-h1, h3 {
+h1 {
   color: #2e7d32;
 }
 
 input {
-  padding: 5px;
-  margin: 3px;
+  padding: 6px;
+  margin: 4px;
 }
 
 button {
-  padding: 5px 10px;
-  margin-left: 5px;
+  padding: 6px 10px;
   cursor: pointer;
 }
 
 table {
-  width: 100%;
   border-collapse: collapse;
   margin-top: 10px;
+  width: 100%;
+  background: #fff;
+}
+
+th {
+  background: #4caf50;
+  color: #fff;
 }
 
 th, td {
   border: 1px solid #ccc;
   padding: 6px;
   text-align: center;
+}
+
+#loginBox {
+  background: #fff;
+  padding: 20px;
+  max-width: 300px;
 }

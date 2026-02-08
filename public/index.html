@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Kho GreenKitchen</title>
 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
-  <!-- STYLE -->
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -16,10 +17,8 @@
 <!-- LOGIN -->
 <div id="loginBox">
   <h3>🔐 Đăng nhập nhân viên</h3>
-  <input id="email" type="email" placeholder="Email" />
-  <input id="password" type="password" placeholder="Mật khẩu" />
-  <button id="loginBtn">Đăng nhập</button>
-  <p id="loginError" style="color:red"></p>
+  <input id="username" placeholder="Tên nhân viên">
+  <button onclick="login()">Đăng nhập</button>
 </div>
 
 <!-- APP -->
@@ -29,13 +28,13 @@
 
   <!-- ADD ITEM -->
   <h3>📦 Thêm mặt hàng</h3>
-  <input id="itemName" placeholder="Tên mặt hàng" />
-  <input id="itemUnit" placeholder="Đơn vị (kg, cái...)" />
-  <button id="addItemBtn">➕ Thêm</button>
+  <input id="itemName" placeholder="Tên mặt hàng">
+  <input id="itemUnit" placeholder="Đơn vị (kg, cái...)">
+  <button onclick="addItem()">➕ Thêm</button>
 
   <!-- INVENTORY -->
   <h3>📊 Tồn kho</h3>
-  <table border="1" cellpadding="6">
+  <table>
     <thead>
       <tr>
         <th>Mặt hàng</th>
@@ -50,7 +49,7 @@
 
   <!-- HISTORY -->
   <h3>📜 Lịch sử thao tác</h3>
-  <table border="1" cellpadding="6">
+  <table>
     <thead>
       <tr>
         <th>Thời gian</th>
@@ -63,12 +62,9 @@
     <tbody id="historyBody"></tbody>
   </table>
 
-  <br />
-  <button id="logoutBtn">Đăng xuất</button>
+  <button onclick="logout()">Đăng xuất</button>
 </div>
 
-<!-- FIREBASE + APP -->
-<script type="module" src="app.js"></script>
-
+<script src="app.js"></script>
 </body>
 </html>
