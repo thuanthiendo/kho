@@ -1,3 +1,70 @@
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Kho GreenKitchen</title>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>🥬 KHO GREENKITCHEN</h1>
+
+<!-- LOGIN -->
+<div id="loginBox">
+  <h3>🔐 Đăng nhập nhân viên</h3>
+  <input id="username" placeholder="Tên nhân viên">
+  <button onclick="login()">Đăng nhập</button>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+
+  <p>👤 Nhân viên: <b id="currentUser"></b></p>
+
+  <!-- ADD ITEM -->
+  <h3>📦 Thêm mặt hàng</h3>
+  <input id="itemName" placeholder="Tên mặt hàng">
+  <input id="itemUnit" placeholder="Đơn vị (kg, cái...)">
+  <button onclick="addItem()">➕ Thêm</button>
+
+  <!-- INVENTORY -->
+  <h3>📊 Tồn kho</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Mặt hàng</th>
+        <th>Tồn</th>
+        <th>Nhập</th>
+        <th>Xuất</th>
+        <th>Xóa</th>
+      </tr>
+    </thead>
+    <tbody id="inventoryBody"></tbody>
+  </table>
+
+  <!-- HISTORY -->
+  <h3>📜 Lịch sử thao tác</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Thời gian</th>
+        <th>Nhân viên</th>
+        <th>Hành động</th>
+        <th>Mặt hàng</th>
+        <th>Số lượng</th>
+      </tr>
+    </thead>
+    <tbody id="historyBody"></tbody>
+  </table>
+
+  <button onclick="logout()">Đăng xuất</button>
+</div>
+
 <script src="app.js"></script>
+</body>
+</html>

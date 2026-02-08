@@ -1,85 +1,71 @@
-/*************** USERS ***************/
-const USERS = {
-  admin: { password: "123", role: "admin" },
-
-  emp01: { password: "123", role: "employee" },
-  emp02: { password: "123", role: "employee" },
-  emp03: { password: "123", role: "employee" },
-  emp04: { password: "123", role: "employee" },
-  emp05: { password: "123", role: "employee" }
-};
-
-/*************** FIREBASE ***************/
+/************ FIREBASE ************/
 firebase.initializeApp({
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID"
+  apiKey: "AIzaSyAhl7xlN7QQHeTHvwo45g5vgOtFg70ajqI",
+  authDomain: "greenkitchen-d9d32.firebaseapp.com",
+  projectId: "greenkitchen-d9d32"
 });
 
 const db = firebase.firestore();
 
+/************ AUTH ************/
 let currentUser = null;
-let currentRole = null;
 
-/*************** LOGIN ***************/
-function login() {
-  const u = username.value.trim().toLowerCase();
-  const p = password.value.trim();
+window.login = () => {
+  const u = username.value.trim();
+  if (!u) return alert("Nhập tên nhân viên");
 
-  if (!USERS[u] || USERS[u].password !== p) {
-    alert("Sai tài khoản hoặc mật khẩu");
-    return;
-  }
-
+  currentUser = u;
   localStorage.setItem("user", u);
-  localStorage.setItem("role", USERS[u].role);
-  initApp(u, USERS[u].role);
-}
-
-function logout() {
-  localStorage.clear();
-  location.reload();
-}
-
-window.onload = () => {
-  const u = localStorage.getItem("user");
-  const r = localStorage.getItem("role");
-  if (u && r) initApp(u, r);
-};
-
-function initApp(user, role) {
-  currentUser = user;
-  currentRole = role;
 
   loginBox.style.display = "none";
   app.style.display = "block";
-
-  if (role !== "admin") {
-    document.querySelectorAll(".admin-only").forEach(e => e.remove());
-  }
+  document.getElementById("currentUser").textContent = u;
 
   loadItems();
   loadHistory();
+};
+
+window.logout = () => {
+  localStorage.clear();
+  location.reload();
+};
+
+window.addEventListener("DOMContentLoaded", () => {
+  const u = localStorage.getItem("user");
+  if (u) {
+    currentUser = u;
+    loginBox.style.display = "none";
+    app.style.display = "block";
+    document.getElementById("currentUser").textContent = u;
+    loadItems();
+    loadHistory();
+  }
+});
+
+/************ HISTORY ************/
+function addHistory(action, item, qty = "") {
+  db.collection("history").add({
+    employee: currentUser,
+    action,
+    item,
+    quantity: qty,
+    time: firebase.firestore.FieldValue.serverTimestamp()
+  });
 }
 
-/*************** ITEMS ***************/
+/************ ITEMS ************/
 function addItem() {
-  if (currentRole !== "admin") return;
-
   const name = itemName.value.trim();
   const unit = itemUnit.value.trim();
-
-  if (!name || !unit) {
-    alert("Nhập đầy đủ thông tin");
-    return;
-  }
+  if (!name || !unit) return alert("Nhập đủ thông tin");
 
   db.collection("items").add({
     name,
     unit,
-    quantity: 0,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    stock: 0
   });
+
+  addHistory("THÊM MẶT HÀNG", name);
 
   itemName.value = "";
   itemUnit.value = "";
@@ -87,86 +73,89 @@ function addItem() {
 
 function loadItems() {
   db.collection("items").onSnapshot(snap => {
-    itemBody.innerHTML = "";
+    inventoryBody.innerHTML = "";
 
     snap.forEach(doc => {
       const d = doc.data();
-
       const tr = document.createElement("tr");
+
       tr.innerHTML = `
-        <td>${d.name}</td>
-        <td>${d.unit}</td>
-        <td>${d.quantity}</td>
-        <td>
-          <input type="number" min="1" id="in-${doc.id}">
-          <button onclick="importItem('${doc.id}','${d.name}',${d.quantity})">+</button>
-        </td>
-        <td>
-          <input type="number" min="1" id="out-${doc.id}">
-          <button onclick="exportItem('${doc.id}','${d.name}',${d.quantity})">-</button>
-        </td>
+        <td>${d.name} (${d.unit})</td>
+        <td>${d.stock}</td>
+        <td><input type="number" min="1" id="in-${doc.id}"></td>
+        <td><input type="number" min="1" id="out-${doc.id}"></td>
+        <td></td>
       `;
-      itemBody.appendChild(tr);
+
+      const btnIn = document.createElement("button");
+      btnIn.textContent = "Nhập";
+      btnIn.onclick = () => changeStock(doc.id, d.name, "NHẬP");
+
+      const btnOut = document.createElement("button");
+      btnOut.textContent = "Xuất";
+      btnOut.onclick = () => changeStock(doc.id, d.name, "XUẤT");
+
+      const btnDel = document.createElement("button");
+      btnDel.textContent = "❌";
+      btnDel.onclick = () => deleteItem(doc.id, d.name);
+
+      tr.children[2].appendChild(btnIn);
+      tr.children[3].appendChild(btnOut);
+      tr.children[4].appendChild(btnDel);
+
+      inventoryBody.appendChild(tr);
     });
   });
 }
 
-/*************** IMPORT / EXPORT ***************/
-function importItem(id, name, qty) {
-  const amount = Number(document.getElementById("in-" + id).value);
-  if (!amount) return;
+function changeStock(id, name, action) {
+  const input = document.getElementById(
+    action === "NHẬP" ? `in-${id}` : `out-${id}`
+  );
+  const qty = Number(input.value);
+  if (qty <= 0) return alert("Số lượng không hợp lệ");
 
-  updateStock(id, name, "import", amount, qty);
+  const ref = db.collection("items").doc(id);
+
+  db.runTransaction(async t => {
+    const doc = await t.get(ref);
+    let stock = doc.data().stock;
+
+    if (action === "XUẤT" && stock < qty) {
+      throw "Không đủ hàng";
+    }
+
+    stock = action === "NHẬP" ? stock + qty : stock - qty;
+    t.update(ref, { stock });
+  }).then(() => {
+    addHistory(action, name, qty);
+    input.value = "";
+  }).catch(err => alert(err));
 }
 
-function exportItem(id, name, qty) {
-  const amount = Number(document.getElementById("out-" + id).value);
-  if (!amount) return;
+function deleteItem(id, name) {
+  if (!confirm("Xóa mặt hàng này?")) return;
 
-  if (qty < amount) {
-    alert("Không đủ tồn kho");
-    return;
-  }
-
-  updateStock(id, name, "export", amount, qty);
+  db.collection("items").doc(id).delete();
+  addHistory("XÓA MẶT HÀNG", name);
 }
 
-function updateStock(id, name, type, amount, qty) {
-  const newQty = type === "import" ? qty + amount : qty - amount;
-
-  db.collection("items").doc(id).update({
-    quantity: newQty
-  });
-
-  db.collection("inventory_history").add({
-    itemId: id,
-    itemName: name,
-    type,
-    quantity: amount,
-    employee: currentUser,
-    time: firebase.firestore.FieldValue.serverTimestamp()
-  });
-}
-
-/*************** HISTORY ***************/
+/************ LOAD HISTORY ************/
 function loadHistory() {
-  db.collection("inventory_history")
+  db.collection("history")
     .orderBy("time", "desc")
     .onSnapshot(snap => {
       historyBody.innerHTML = "";
-
       snap.forEach(doc => {
         const d = doc.data();
         const tr = document.createElement("tr");
-
         tr.innerHTML = `
+          <td>${d.time?.toDate().toLocaleString()}</td>
           <td>${d.employee}</td>
-          <td>${d.itemName}</td>
-          <td>${d.type === "import" ? "Nhập" : "Xuất"}</td>
+          <td>${d.action}</td>
+          <td>${d.item}</td>
           <td>${d.quantity}</td>
-          <td>${d.time.toDate().toLocaleString()}</td>
         `;
-
         historyBody.appendChild(tr);
       });
     });

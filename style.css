@@ -1,10 +1,22 @@
 body {
-  font-family: Arial, sans-serif;
+  font-family: Arial;
   padding: 20px;
+  background: #f4f6f4;
 }
 
-h1, h2 {
-  text-align: center;
+h1, h3 {
+  color: #2e7d32;
+}
+
+input {
+  padding: 5px;
+  margin: 3px;
+}
+
+button {
+  padding: 5px 10px;
+  margin-left: 5px;
+  cursor: pointer;
 }
 
 table {
@@ -16,27 +28,5 @@ table {
 th, td {
   border: 1px solid #ccc;
   padding: 6px;
-  text-align: center;
-}
-
-.login-box {
-  width: 300px;
-  margin: 100px auto;
-  text-align: center;
-}
-
-.login-box input {
-  width: 90%;
-  margin: 5px 0;
-  padding: 6px;
-}
-
-button {
-  padding: 5px 10px;
-  cursor: pointer;
-}
-
-.add-box {
-  margin-bottom: 10px;
   text-align: center;
 }
