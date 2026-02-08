@@ -1,23 +1,18 @@
-// ===== FIREBASE IMPORT =====
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import {
-  getAuth,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  onSnapshot,
-  updateDoc,
-  deleteDoc,
-  doc,
-  serverTimestamp
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+/*************** USERS (NỘI BỘ) ***************/
+const USERS = {
+  admin: { password: "123", role: "admin" },
+  hungtv: { password: "123", role: "admin" },
 
-// ===== CONFIG (THAY BẰNG CONFIG CỦA BẠN) =====
+  emp1: { password: "123", role: "employee" },
+  thiendt: { password: "123", role: "employee" },
+  khangpd: { password: "123", role: "employee" }
+};
+
+let currentUser = null;
+let currentRole = null;
+
+/*************** FIREBASE ***************/
+/*************** FIREBASE CONFIG ***************/
 const firebaseConfig = {
   apiKey: "AIzaSyAhl7xlN7QQHeTHvwo45g5vgOtFg70ajqI",
   authDomain: "greenkitchen-d9d32.firebaseapp.com",
@@ -28,127 +23,145 @@ const firebaseConfig = {
   measurementId: "G-ZV9BC0QFE3"
 };
 
-// ===== INIT =====
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+// Khởi tạo Firebase
+firebase.initializeApp(firebaseConfig);
 
-// ===== DOM =====
-const loginBox = document.getElementById("loginBox");
-const appBox = document.getElementById("app");
-const currentUserEl = document.getElementById("currentUser");
-const inventoryBody = document.getElementById("inventoryBody");
-const historyBody = document.getElementById("historyBody");
+// Firestore
+const db = firebase.firestore();
 
-// ===== LOGIN =====
-document.getElementById("loginBtn").onclick = async () => {
-  const email = emailInput.value;
-  const password = passwordInput.value;
 
-  try {
-    await signInWithEmailAndPassword(auth, email, password);
-  } catch (e) {
-    loginError.innerText = e.message;
+/*************** LOGIN ***************/
+window.login = function () {
+  const u = username.value.trim().toLowerCase();
+  const p = password.value.trim();
+
+  if (!USERS[u] || USERS[u].password !== p) {
+    alert("Sai tài khoản hoặc mật khẩu");
+    return;
   }
+
+  localStorage.setItem("user", u);
+  localStorage.setItem("role", USERS[u].role);
+  initApp(u, USERS[u].role);
 };
 
-// ===== LOGOUT =====
-document.getElementById("logoutBtn").onclick = () => signOut(auth);
+window.logout = function () {
+  localStorage.clear();
+  location.reload();
+};
 
-// ===== AUTH STATE =====
-onAuthStateChanged(auth, user => {
-  if (user) {
-    loginBox.style.display = "none";
-    appBox.style.display = "block";
-    currentUserEl.innerText = user.email;
-    loadInventory();
-    loadHistory();
-  } else {
-    loginBox.style.display = "block";
-    appBox.style.display = "none";
-  }
+window.addEventListener("DOMContentLoaded", () => {
+  const u = localStorage.getItem("user");
+  const r = localStorage.getItem("role");
+  if (u && r) initApp(u, r);
 });
 
-// ===== ADD ITEM =====
-document.getElementById("addItemBtn").onclick = async () => {
+function initApp(user, role) {
+  currentUser = user;
+  currentRole = role;
+
+  loginBox.style.display = "none";
+  app.style.display = "block";
+  currentUser.innerText = user;
+
+  if (role !== "admin") {
+    document.querySelectorAll(".admin-only").forEach(e => e.remove());
+  }
+
+  loadInventory();
+  loadHistory();
+}
+
+/*************** INVENTORY ***************/
+function addItem() {
   const name = itemName.value.trim();
   const unit = itemUnit.value.trim();
-  if (!name || !unit) return alert("Nhập đủ thông tin");
 
-  await addDoc(collection(db, "inventory"), {
+  if (!name || !unit) {
+    alert("Nhập đủ thông tin");
+    return;
+  }
+
+  db.collection("inventory").add({
     name,
     unit,
     quantity: 0,
-    createdAt: serverTimestamp()
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
   });
 
-  await addHistory("Tạo mặt hàng", name, 0);
   itemName.value = "";
   itemUnit.value = "";
-};
+}
 
-// ===== LOAD INVENTORY =====
+function updateQty(id, delta, name) {
+  const ref = db.collection("inventory").doc(id);
+
+  ref.get().then(doc => {
+    const newQty = doc.data().quantity + delta;
+    ref.update({ quantity: newQty });
+
+    addHistory(delta > 0 ? "Nhập" : "Xuất", name, Math.abs(delta));
+  });
+}
+
+function deleteItem(id) {
+  if (!confirm("Xóa mặt hàng này?")) return;
+  db.collection("inventory").doc(id).delete();
+}
+
 function loadInventory() {
-  onSnapshot(collection(db, "inventory"), snap => {
+  db.collection("inventory").onSnapshot(snap => {
     inventoryBody.innerHTML = "";
-    snap.forEach(docSnap => {
-      const d = docSnap.data();
+
+    snap.forEach(doc => {
+      const d = doc.data();
       const tr = document.createElement("tr");
 
       tr.innerHTML = `
-        <td>${d.name}</td>
+        <td>${d.name} (${d.unit})</td>
         <td>${d.quantity}</td>
-        <td><button onclick="changeQty('${docSnap.id}', 1)">+</button></td>
-        <td><button onclick="changeQty('${docSnap.id}', -1)">-</button></td>
-        <td><button onclick="removeItem('${docSnap.id}', '${d.name}')">❌</button></td>
+        <td><button onclick="updateQty('${doc.id}', 1, '${d.name}')">+</button></td>
+        <td><button onclick="updateQty('${doc.id}', -1, '${d.name}')">-</button></td>
+        ${currentRole === "admin"
+          ? `<td><button onclick="deleteItem('${doc.id}')">❌</button></td>`
+          : ``}
       `;
+
       inventoryBody.appendChild(tr);
     });
   });
 }
 
-// ===== CHANGE QTY =====
-window.changeQty = async (id, delta) => {
-  const ref = doc(db, "inventory", id);
-  await updateDoc(ref, {
-    quantity: delta
-  });
-
-  await addHistory(delta > 0 ? "Nhập kho" : "Xuất kho", id, delta);
-};
-
-// ===== DELETE =====
-window.removeItem = async (id, name) => {
-  if (!confirm("Xóa mặt hàng?")) return;
-  await deleteDoc(doc(db, "inventory", id));
-  await addHistory("Xóa mặt hàng", name, 0);
-};
-
-// ===== HISTORY =====
-async function addHistory(action, item, qty) {
-  await addDoc(collection(db, "history"), {
-    user: auth.currentUser.email,
+/*************** HISTORY ***************/
+function addHistory(action, item, qty) {
+  db.collection("history").add({
+    time: firebase.firestore.FieldValue.serverTimestamp(),
+    user: currentUser,
     action,
     item,
-    quantity: qty,
-    time: serverTimestamp()
+    qty
   });
 }
 
 function loadHistory() {
-  onSnapshot(collection(db, "history"), snap => {
-    historyBody.innerHTML = "";
-    snap.forEach(d => {
-      const h = d.data();
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${h.time?.toDate().toLocaleString()}</td>
-        <td>${h.user}</td>
-        <td>${h.action}</td>
-        <td>${h.item}</td>
-        <td>${h.quantity}</td>
-      `;
-      historyBody.appendChild(tr);
+  db.collection("history")
+    .orderBy("time", "desc")
+    .onSnapshot(snap => {
+      historyBody.innerHTML = "";
+
+      snap.forEach(doc => {
+        const d = doc.data();
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+          <td>${d.time?.toDate().toLocaleString() || ""}</td>
+          <td>${d.user}</td>
+          <td>${d.action}</td>
+          <td>${d.item}</td>
+          <td>${d.qty}</td>
+        `;
+
+        historyBody.appendChild(tr);
+      });
     });
-  });
 }
